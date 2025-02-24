@@ -1,10 +1,7 @@
 package ru.netology.data;
 
 import com.github.javafaker.Faker;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.List;
 import java.util.Random;
@@ -80,13 +77,19 @@ public class DataHelper {
     }
 
     @AllArgsConstructor
+    @NoArgsConstructor
     @Getter
     @Setter
     public static class TokenData {
         private String token;
     }
+    public static TokenData getAccessToken() {
+        return new TokenData("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbiI6InZhc3lhIn0." +
+                "JmhHh8NXwfqktXSFbzkPohUb90gnc3yZ9tiXa0uUpRY");
+    }
 
     @AllArgsConstructor
+    @NoArgsConstructor
     @Getter
     @Setter
     public static class CardsInfo {

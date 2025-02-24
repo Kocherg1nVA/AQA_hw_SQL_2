@@ -14,13 +14,11 @@ import java.util.List;
 import static io.restassured.RestAssured.given;
 
 public class APITest {
-    DataHelper.TokenData authToken;
-    List<DataHelper.CardsInfo> userCards;
 
-//    @AfterAll
-//    public static void reloadDB(){
-//        SQLHelper.cleanDataBase();
-//    }
+    @AfterAll
+    public static void cleanDB(){
+        SQLHelper.cleanDataBase();
+    }
 
     //happy path
     @Test
@@ -41,8 +39,8 @@ public class APITest {
 
     @Test
     @DisplayName("Верификация пользователя с валидными данными")
-    public void shouldSuccessVerify() {
-        authToken = given()
+    public void shouldSuccessVerify() { DataHelper.TokenData accessToken =
+            given()
                 .spec(Specifications.requestSpec())
                 .body(DataHelper.VerificationData.getVerifyInfo())
                 .when()
@@ -54,22 +52,17 @@ public class APITest {
                 .header("Content-Type", "application/json; charset=UTF-8")
                 .header("Connection", "keep-alive")
                 .extract().response().as(DataHelper.TokenData.class);
-        Assertions.assertNotNull(authToken.getToken());
+        Assertions.assertNotNull(accessToken.getToken());
     }
 
     @Test
     @DisplayName("Получить список карт пользователя и положить в класс")
     public void shouldGetUserCards() {
-        authToken = given()
+        String token = DataHelper.getAccessToken().getToken();
+        List<DataHelper.CardsInfo> userCards =
+                given()
                 .spec(Specifications.requestSpec())
-                .body(DataHelper.VerificationData.getVerifyInfo())
-                .when()
-                .post(new DataHelper.PathData().getVerificationPath())
-                .then()
-                .extract().response().as(DataHelper.TokenData.class);
-        userCards = given()
-                .spec(Specifications.requestSpec())
-                .auth().oauth2(authToken.getToken())
+                .auth().oauth2(token)
                 .get(new DataHelper.PathData().getCardsInfoPath())
                 .then()
                 .log().all()
@@ -80,27 +73,19 @@ public class APITest {
     }
 
     @Test
-    @DisplayName("Перевод денег с 1 карты на 2 карту")
-    public void shouldSuccessTransfer() {
-        authToken = given()
-                .spec(Specifications.requestSpec())
-                .body(DataHelper.VerificationData.getVerifyInfo())
-                .when()
-                .post(new DataHelper.PathData().getVerificationPath())
-                .then()
-                .extract().response().as(DataHelper.TokenData.class);
-
-        List<DataHelper.CardsInfo> cardsInfo = SQLHelper.getUserCards();
-        int initialFirstCardBalance = cardsInfo.get(0).getBalance();
-        int initialSecondCardBalance = cardsInfo.get(1).getBalance();
+    @DisplayName("Перевод денег в рамках баланса")
+    public void shouldSuccessTransferWhenAmountLessThanBalance() {
+        String token = DataHelper.getAccessToken().getToken();
+        List<DataHelper.CardsInfo> cards = SQLHelper.getUserCards();
+        int initialFirstCardBalance = cards.get(0).getBalance();
+        int initialSecondCardBalance = cards.get(1).getBalance();
         int amount = DataHelper.generateAmount(initialSecondCardBalance);
         int expectedFirstCardBalance = initialFirstCardBalance - amount;
         int expectedSecondCardBalance = initialSecondCardBalance + amount;
-
         given()
                 .spec(Specifications.requestSpec())
-                .auth().oauth2(authToken.getToken())
-                .body(DataHelper.TransferData.moneyTransfer(cardsInfo, 0, 1, amount))
+                .auth().oauth2(token)
+                .body(DataHelper.TransferData.moneyTransfer(cards, 0, 1, amount))
                 .post(new DataHelper.PathData().getTransferPath())
                 .then()
                 .log().all()
@@ -127,58 +112,54 @@ public class APITest {
                 .header("Content-Type", "application/json; charset=UTF-8")
                 .header("Connection", "keep-alive")
                 .extract().response().as(DataHelper.LoginErr.class);
+        Assertions.assertNotNull(loginErr.getCode());
         Assertions.assertEquals("AUTH_INVALID", loginErr.getCode());
     }
 
     @Test
     @DisplayName("Верификация пользователя с невалидным кодом аутентификации")
     public void shouldNotVerify() {
-        DataHelper.VerifyErr verifyErr;
-        verifyErr = given()
+        DataHelper.VerifyErr verifyErr = given()
                 .spec(Specifications.requestSpec())
                 .body(DataHelper.InvalidVerificationData.getInvalidVerifyInfo())
+                .when()
                 .post(new DataHelper.PathData().getVerificationPath())
                 .then()
                 .log().all()
                 .statusCode(400)
                 .contentType(ContentType.JSON)
                 .extract().response().as(DataHelper.VerifyErr.class);
+        Assertions.assertNotNull(verifyErr.getCode());
         Assertions.assertEquals("AUTH_INVALID", verifyErr.getCode());
     }
 
     @Test
-    @DisplayName("Запросить список карт пользователя без токена аутентификации")
+    @DisplayName("Запросить список карт пользователя без токена")
     public void shouldNotGetUserCards() {
         given()
                 .spec(Specifications.requestSpec())
+                .when()
                 .get(new DataHelper.PathData().getCardsInfoPath())
                 .then()
                 .log().all()
                 .statusCode(401)
                 .header("WWW-Authenticate", "Bearer realm=\"Ktor Server\"");
     }
-//    @Test
-//    @DisplayName("Перевод денег со 2 карты на 1 карту на сумму превышающую баланс карты списания")
-//    public void shouldNotTransferWhenAmountMoreThanBalance() {
-//        authToken = given()
-//                .spec(Specifications.requestSpec())
-//                .body(DataHelper.VerificationData.getVerifyInfo())
-//                .when()
-//                .post(new DataHelper.PathData().getVerificationPath())
-//                .then()
-//                .extract().response().as(DataHelper.TokenData.class);
-//
-//        List<DataHelper.CardsInfo> cardsInfo = SQLHelper.getUserCards();
-//        int CardFromInitialBalance = cardsInfo.get(0).getBalance();
-//        int amount = DataHelper.generateInvalidAmount(CardFromInitialBalance);
-//
-//        given()
-//                .spec(Specifications.requestSpec())
-//                .auth().oauth2(authToken.getToken())
-//                .body(DataHelper.TransferData.moneyTransfer(cardsInfo, 1, 0, amount))
-//                .post(new DataHelper.PathData().getTransferPath())
-//                .then()
-//                .log().all()
-//                .statusCode(400);
-//    }
+    @Test
+    @DisplayName("Перевод на сумму превышающую баланс карты списания")
+    public void shouldNotTransferWhenAmountMoreThanBalance() {
+        List<DataHelper.CardsInfo> cardsInfo = SQLHelper.getUserCards();
+        int CardFromInitialBalance = cardsInfo.get(0).getBalance();
+        int amount = DataHelper.generateInvalidAmount(CardFromInitialBalance);
+
+        given()
+                .spec(Specifications.requestSpec())
+                .auth().oauth2(DataHelper.getAccessToken().getToken())
+                .body(DataHelper.TransferData.moneyTransfer(cardsInfo, 1, 0, amount))
+                .when()
+                .post(new DataHelper.PathData().getTransferPath())
+                .then()
+                .log().all()
+                .statusCode(400);
+    }
 }
