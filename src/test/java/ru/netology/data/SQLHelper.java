@@ -30,10 +30,19 @@ public class SQLHelper {
     }
 
     @SneakyThrows
-    public static List<CardsInfoData> getUserCards() {
+    public static void cleanDataBase() {
+        var conn = getConnection();
+        runner.execute(conn, "DELETE FROM auth_codes");
+        runner.execute(conn, "DELETE FROM card_transactions");
+        runner.execute(conn, "DELETE FROM cards");
+        runner.execute(conn, "DELETE FROM users");
+    }
+
+    @SneakyThrows
+    public static List<DataHelper.CardsInfo> getUserCards() {
         var getUserCards = "SELECT cards.id, number, balance_in_kopecks / 100 AS balance FROM cards";
         try (var conn = getConnection()) {
-            return runner.query(conn, getUserCards, new BeanListHandler<>(CardsInfoData.class));
+            return runner.query(conn, getUserCards, new BeanListHandler<>(DataHelper.CardsInfo.class));
         }
     }
 }

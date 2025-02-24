@@ -4,6 +4,10 @@ import com.github.javafaker.Faker;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.util.List;
+import java.util.Random;
 
 public class DataHelper {
     static Faker faker = new Faker();
@@ -17,7 +21,6 @@ public class DataHelper {
     }
 
     @AllArgsConstructor
-    @NoArgsConstructor
     @Getter
     public static class LoginData {
         private String login;
@@ -29,7 +32,6 @@ public class DataHelper {
     }
 
     @AllArgsConstructor
-    @NoArgsConstructor
     @Getter
     public static class InvalidLogin {
         private String login;
@@ -48,7 +50,6 @@ public class DataHelper {
     }
 
     @AllArgsConstructor
-    @NoArgsConstructor
     @Getter
     public static class VerificationData {
         private String login;
@@ -60,16 +61,16 @@ public class DataHelper {
     }
 
     @AllArgsConstructor
-    @NoArgsConstructor
     @Getter
     public static class InvalidVerificationData {
         private String login;
         private String code;
 
         public static VerificationData getInvalidVerifyInfo() {
-            String login = faker.name().username();
+            String validLogin = LoginData.getLoginInfo().getLogin();
+//            String login = faker.name().username();
             String code = faker.code().ean8();
-            return new VerificationData(login, code);
+            return new VerificationData(validLogin, code);
         }
     }
 
@@ -79,30 +80,41 @@ public class DataHelper {
     }
 
     @AllArgsConstructor
-    @NoArgsConstructor
     @Getter
+    @Setter
     public static class TokenData {
         private String token;
     }
 
     @AllArgsConstructor
-    @NoArgsConstructor
     @Getter
+    @Setter
     public static class CardsInfo {
 
         private String id;
         private String number;
-        private String balance;
+        private Integer balance;
     }
 
+    @AllArgsConstructor
+    @Getter
+    public static class TransferData {
+        String from;
+        String to;
+        int amount;
 
-//    public static class TransferData {
-//        String from;
-//        String to;
-//        int amount;
-//
-//        public static TransferData moneyTransfer() {
-//            return new TransferData();
-//        }
-//    }
+        public static TransferData moneyTransfer(List<CardsInfo> cards, int indexFrom, int indexTo, int amount) {
+            String cardFrom = cards.get(indexFrom).getNumber();
+            String cardTo = cards.get(indexTo).getNumber();
+            return new TransferData(cardFrom, cardTo, amount);
+        }
+    }
+
+    public static int generateAmount(int balance) {
+        return new Random().nextInt(balance) + 1;
+    }
+
+    public static int generateInvalidAmount(int balance) {
+        return Math.abs(balance) + new Random().nextInt(10_000);
+    }
 }
