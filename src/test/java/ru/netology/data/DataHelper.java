@@ -1,21 +1,16 @@
 package ru.netology.data;
 
 import com.github.javafaker.Faker;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.List;
 import java.util.Random;
 
 public class DataHelper {
     static Faker faker = new Faker();
-
-    @Getter
-    public static class PathData {
-        private final String loginPath = "api/auth";
-        private final String verificationPath = "api/auth/verification";
-        private final String cardsInfoPath = "api/cards";
-        private final String transferPath = "api/transfer";
-    }
 
     @AllArgsConstructor
     @Getter
@@ -26,19 +21,12 @@ public class DataHelper {
         public static LoginData getLoginInfo() {
             return new LoginData("vasya", "qwerty123");
         }
-    }
 
-    @AllArgsConstructor
-    @Getter
-    public static class InvalidLogin {
-        private String login;
-        private String password;
-    }
-
-    public static InvalidLogin generateInvalidInfo() {
-        String login = faker.name().username();
-        String password = faker.internet().password();
-        return new InvalidLogin(login, password);
+        public static LoginData generateInvalidInfo() {
+            String login = faker.name().username();
+            String password = faker.internet().password();
+            return new LoginData(login, password);
+        }
     }
 
     @Getter
@@ -55,17 +43,9 @@ public class DataHelper {
         public static VerificationData getVerifyInfo() {
             return new VerificationData(LoginData.getLoginInfo().login, SQLHelper.getVerificationCode());
         }
-    }
-
-    @AllArgsConstructor
-    @Getter
-    public static class InvalidVerificationData {
-        private String login;
-        private String code;
 
         public static VerificationData getInvalidVerifyInfo() {
             String validLogin = LoginData.getLoginInfo().getLogin();
-//            String login = faker.name().username();
             String code = faker.code().ean8();
             return new VerificationData(validLogin, code);
         }
@@ -83,17 +63,12 @@ public class DataHelper {
     public static class TokenData {
         private String token;
     }
-    public static TokenData getAccessToken() {
-        return new TokenData("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbiI6InZhc3lhIn0." +
-                "JmhHh8NXwfqktXSFbzkPohUb90gnc3yZ9tiXa0uUpRY");
-    }
 
     @AllArgsConstructor
     @NoArgsConstructor
     @Getter
     @Setter
     public static class CardsInfo {
-
         private String id;
         private String number;
         private Integer balance;
@@ -102,9 +77,9 @@ public class DataHelper {
     @AllArgsConstructor
     @Getter
     public static class TransferData {
-        String from;
-        String to;
-        int amount;
+        private String from;
+        private String to;
+        private int amount;
 
         public static TransferData moneyTransfer(List<CardsInfo> cards, int indexFrom, int indexTo, int amount) {
             String cardFrom = cards.get(indexFrom).getNumber();
